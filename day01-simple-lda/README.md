@@ -121,7 +121,7 @@ Fitting the model is fairly straightforward.
   ``` r
   # Convert received_callback to a factor with more informative labels
   resume <- resume %>% 
-    mutate(received_callback = factor(received_callback, labels = c("No", "Yes"))
+    mutate(received_callback = factor(received_callback, labels = c("No", "Yes")))
 
   # LDA
   library(discrim)
