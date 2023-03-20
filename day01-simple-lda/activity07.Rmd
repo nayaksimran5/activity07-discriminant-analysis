@@ -6,3 +6,82 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# Task 1: Load the necessary packages
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(discrim)
+```
+
+# Task 2: Load the data and
+```{r}
+resume <- data.frame(readr::read_csv("https://www.openintro.org/data/csv/resume.csv"))
+```
+# Linear discriminate analysis (LDA)
+
+Linear discriminate analysis (LDA) is another method for classification problems. For LDA, we make assumptions about the distribution of the explanatory/independent variable(s) given the response/dependent variable (e.g., X|Y ~ Normal). Note that because of this assumption, LDA will only work with qualitative explanatory variables. Also note that because of logistic regression, some believe (like the great Dr. Frank Harrell) that LDA is obsolete. This method then uses Bayes’ theorem to build a classifier for the likelihood of belonging to one of the levels of the response variable.
+
+When the dependent/target variable has 2 classes, then Logistic Regressio is more suitable i.e. it is a type of binary classification.
+Linear discriminant analysis (LDA) performs well when there is multi class classification problem at hand i.e. when the dependent/target variable has more than 2 classes, then Linear discriminate analysis is suitable. 
+
+Dependent/Response variable must be Categorical variable. They can't be numbers. If 0 or 1 are there we need to change them to categorical variable.
+
+# Task 3: LDA
+
+```{r}
+# Convert received_callback to a factor with more informative labels
+resume <- resume %>% 
+  mutate(received_callback = factor(received_callback, labels = c("No", "Yes")))
+
+# LDA
+lda_years <- discrim_linear() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS") %>% 
+  fit(received_callback ~ log(years_experience), data = resume)
+
+lda_years
+```
+
+Looking at the Group means: portion of the above output, you have the mean of log(years_experience) for whether a résumé received a call back.
+
+# Task 4: Predictions
+
+```{r}
+# Predictions for LDA
+predict(lda_years, new_data = resume, type = "prob")
+```
+
+This output gives us the likelihood for a particular résumé to be in the “No” or “Yes” callback group. However, looking at this is rather overwhelming (over 4,000 observations!) so we will now create a confusion matrix to look at the performance of our model.
+
+```{r}
+# Creating a confusion matrix
+augment(lda_years, new_data = resume) %>% 
+  conf_mat(truth = received_callback, estimate = .pred_class)
+```
+
+```{r}
+# Overall accuracy of our model(i.e., how often did it correctly predict the actual outcome)
+augment(lda_years, new_data = resume) %>% 
+  accuracy(truth = received_callback, estimate = .pred_class)
+```
+
+So the model was right about 92% of the time… because it never predicted that someone would receive a callback. Note that this 92% corresponds to the “No” rate in the response variable
+
+Challenge:
+
+```{r}
+# Logistic regression requires that the response be a factor variable
+resume_model <- logistic_reg() %>%
+  set_engine("glm") %>%
+  fit(received_callback ~ log(years_experience), data = resume, family = "binomial")
+
+tidy(resume_model) %>% 
+  knitr::kable(digits = 3)
+```
+
+```{r}
+tidy(resume_model, exponentiate = TRUE) %>% 
+  knitr::kable(digits = 3)
+```
